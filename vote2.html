@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2024 거북도르 수상자 투표</title>
+    <style>
+        .candidate-card {
+            display: inline-block;
+            padding: 10px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+        .rank-slot {
+            width: 150px;
+            height: 50px;
+            margin: 10px;
+            border: 1px dashed #ccc;
+            text-align: center;
+            line-height: 50px;
+            min-height: 50px;
+        }
+        .dragging {
+            opacity: 0.5;
+        }
+        .drop-over {
+            background-color: lightyellow;
+        }
+    </style>
+</head>
+<body>
+    <h1>2024 거북도르 수상자 투표</h1>
+
+    <h3>1위부터 3위까지 드래그해서 순위를 매기세요:</h3>
+    <div id="candidates">
+        <div class="candidate-card" draggable="true" data-name="정현수">정현수</div>
+        <div class="candidate-card" draggable="true" data-name="전민임">전민임</div>
+        <div class="candidate-card" draggable="true" data-name="리아루아">리아루아</div>
+        <div class="candidate-card" draggable="true" data-name="길태형">길태형</div>
+        <div class="candidate-card" draggable="true" data-name="용태">용태</div>
+        <div class="candidate-card" draggable="true" data-name="김민석">김민석</div>
+        <div class="candidate-card" draggable="true" data-name="박성빈">박성빈</div>
+        <div class="candidate-card" draggable="true" data-name="이현준">이현준</div>
+        <div class="candidate-card" draggable="true" data-name="김세원">김세원</div>
+    </div>
+
+    <div id="ranking">
+        <div id="rank1" class="rank-slot" ondrop="drop(event)" ondragover="allowDrop(event)">1위</div>
+        <div id="rank2" class="rank-slot" ondrop="drop(event)" ondragover="allowDrop(event)">2위</div>
+        <div id="rank3" class="rank-slot" ondrop="drop(event)" ondragover="allowDrop(event)">3위</div>
+    </div>
+
+    <br><br>
+
+    <label for="username">이름을 입력하세요:</label>
+    <input type="text" id="username" placeholder="이름">
+
+    <button onclick="submitVote()">투표하기</button>
+
+    <br><br>
+
+    <button onclick="showResults()">결과 확인</button>
+    <div id="result-log" style="display: none;">
+        <h3>투표 결과:</h3>
+        <div id="logs"></div>
+        <button onclick="clearLogs()">로그 삭제</button> <!-- 로그 삭제 버튼 추가 -->
+    </div>
+
+    <script>
+        let voteLogs = JSON.parse(localStorage.getItem('voteLogs')) || [];
+
+        // 드래그 시작
+        const candidates = document.querySelectorAll('.candidate-card');
+        candidates.forEach(candidate => {
+            candidate.addEventListener('dragstart', function(event) {
+                event.dataTransfer.setData("text", event.target.dataset.name);
+                event.target.classList.add('dragging');
+            });
+            candidate.addEventListener('dragend', function(event) {
+                event.target.classList.remove('dragging');
+            });
+        });
+
+        // 드롭 허용
+        function allowDrop(event) {
+            event.preventDefault();
+            event.target.classList.add('drop-over');
+        }
+
+        // 드롭 처리
+        function drop(event) {
+            event.preventDefault();
+            event.target.classList.remove('drop-over');
+            
+            const data = event.dataTransfer.getData("text");
+            const rankSlot = event.target;
+
+            // 순위 슬롯에 기존 텍스트가 있을 경우, 그 자리에 후보를 넣음
+            if (rankSlot && rankSlot.classList.contains('rank-slot')) {
+                rankSlot.innerText = data;
+            }
+        }
+
+        // 투표 제출 함수
+        function submitVote() {
+            const rank1 = document.getElementById('rank1').innerText;
+            const rank2 = document.getElementById('rank2').innerText;
+            const rank3 = document.getElementById('rank3').innerText;
+            const username = document.getElementById('username').value;
+
+            // 이름이 입력되지 않았을 경우 경고
+            if (!username) {
+                alert("이름을 입력해주세요.");
+                return;
+            }
+
+            // 1위부터 3위까지 모두 채워야 함
+            if (rank1 === "1위" || rank2 === "2위" || rank3 === "3위") {
+                alert("1위부터 3위까지 모두 선택해주세요.");
+                return;
+            }
+
+            // 중복된 후보가 있는지 체크
+            const ranks = [rank1, rank2, rank3];
+            if (new Set(ranks).size !== ranks.length) {
+                alert("중복된 후보가 있습니다. 각 순위에는 다른 후보를 선택해주세요.");
+                return;
+            }
+
+            // 결과 저장
+            const voteData = {
+                username: username,
+                rank1: rank1,
+                rank2: rank2,
+                rank3: rank3
+            };
+
+            // 투표 결과를 로그 배열에 저장
+            voteLogs.push(voteData);
+            localStorage.setItem('voteLogs', JSON.stringify(voteLogs)); // 로컬 스토리지에 저장
+            alert("투표가 완료되었습니다!");
+            clearInputs();
+        }
+
+        // 결과 확인 함수
+        function showResults() {
+            const password = prompt("비밀번호를 입력하세요:");
+
+            // 비밀번호 확인
+            if (password === "0425") {
+                // 결과 로그 표시
+                const logsContainer = document.getElementById('logs');
+                logsContainer.innerHTML = ""; // 기존 로그 초기화
+
+                // 모든 투표 결과 출력
+                voteLogs.forEach((log, index) => {
+                    const logItem = document.createElement('div');
+                    logItem.innerHTML = `투표 ${index + 1}: ${log.username} - 1위: ${log.rank1}, 2위: ${log.rank2}, 3위: ${log.rank3}`;
+                    logsContainer.appendChild(logItem);
+                });
+
+                document.getElementById('result-log').style.display = 'block';
+            } else {
+                alert("비밀번호가 틀렸습니다.");
+            }
+        }
+
+        // 로그 삭제 함수
+        function clearLogs() {
+            const confirmation = confirm("정말로 모든 로그를 삭제하시겠습니까?");
+            if (confirmation) {
+                localStorage.removeItem('voteLogs'); // 로컬 스토리지에서 로그 삭제
+                voteLogs = []; // 로그 배열 초기화
+                document.getElementById('logs').innerHTML = ''; // 로그 내용 지우기
+                alert("로그가 삭제되었습니다.");
+            }
+        }
+
+        // 입력값 초기화
+        function clearInputs() {
+            document.getElementById('rank1').innerText = "1위";
+            document.getElementById('rank2').innerText = "2위";
+            document.getElementById('rank3').innerText = "3위";
+            document.getElementById('username').value = '';
+        }
+    </script>
+</body>
+</html>
